@@ -382,6 +382,19 @@ pub fn warn_changed(
 pub fn find_shared_versions(
     pkgs: &[plan::PackageRelease],
 ) -> Result<Option<plan::Version>, crate::error::CliError> {
+    if let Some(first) = pkgs.first() {
+        let first_version = first
+            .planned_version
+            .as_ref()
+            .unwrap_or(&first.initial_version);
+        if pkgs.iter().skip(1).all(|p| {
+            let v = p.planned_version.as_ref().unwrap_or(&p.initial_version);
+            v.bare_version == first_version.bare_version
+        }) {
+            return Ok(Some(first_version.clone()));
+        }
+    }
+
     let mut is_shared = true;
     let mut shared_versions: std::collections::HashMap<&str, &plan::Version> = Default::default();
     for pkg in pkgs {
